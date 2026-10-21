@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>按牛贷款·三维动态估值推演</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%); min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 20px 15px; }
+        .app-container { background: #ffffff; width: 100%; max-width: 420px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden; position: relative; padding-bottom: 20px; }
+        
+        .header { background: linear-gradient(90deg, #1b5e20, #2e7d32); color: white; padding: 20px; text-align: center; }
+        .header h1 { font-size: 18px; margin-bottom: 5px; font-weight: 600; letter-spacing: 1px; }
+        /* 副标题已移除，保留一点下间距使头部紧凑 */
+
+        /* 表单区域 */
+        .form-area { padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 14px; color: #333; font-weight: bold; margin-bottom: 8px; }
+        .select-wrapper { position: relative; }
+        select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 10px; font-size: 15px; background-color: #f9f9f9; color: #333; appearance: none; -webkit-appearance: none; outline: none; }
+        select:focus { border-color: #2e7d32; box-shadow: 0 0 0 3px rgba(46,125,50,0.1); }
+        .select-wrapper::after { content: '▼'; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); font-size: 10px; color: #888; pointer-events: none; }
+
+        .btn-submit { width: 100%; padding: 14px; background: linear-gradient(90deg, #2e7d32, #43a047); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(46,125,50,0.3); margin-top: 10px; }
+
+        /* 结果与推演区域 */
+        .result-area { display: none; padding: 20px; background: #fafafa; border-top: 1px solid #eee; }
+        .step-box { background: #fff; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid #2e7d32; animation: slideIn 0.4s ease forwards; opacity: 0; transform: translateY(10px); }
+        
+        @keyframes slideIn { to { opacity: 1; transform: translateY(0); } }
+        
+        .step-title { font-size: 14px; font-weight: bold; color: #1b5e20; margin-bottom: 10px; display: flex; justify-content: space-between; }
+        .step-formula { font-size: 12px; color: #666; background: #f0f0f0; padding: 8px; border-radius: 6px; margin-bottom: 10px; font-family: monospace; }
+        .step-amount { font-size: 16px; font-weight: bold; color: #d32f2f; text-align: right; margin-top: 5px; }
+
+        .weight-box { background: #e3f2fd; border-left-color: #1976d2; }
+        .weight-box .step-title { color: #0d47a1; }
+        .weight-tag { background: #1976d2; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: normal; margin-left: 5px;}
+
+        .final-box { background: #fff8e1; border-left-color: #ffb300; box-shadow: 0 4px 15px rgba(255,179,0,0.2); }
+        .final-box .step-title { color: #e65100; font-size: 15px; }
+        .final-amount { font-size: 22px; font-weight: bold; color: #e65100; text-align: center; margin: 10px 0; }
+        
+        .btn-reset { width: 100%; padding: 12px; background: transparent; border: 2px solid #2e7d32; color: #2e7d32; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="header">
+        <h1>三维动态估值推演系统</h1>
+        <!-- 原“东彩科技 × 贵阳农商银行 联合技术支持”已移除 -->
+    </div>
+
+    <div class="form-area" id="formArea">
+        <div class="form-group">
+            <label>1. 肉牛月龄区间</label>
+            <div class="select-wrapper">
+                <select id="age">
+                    <option value="3">犊牛期（0-6个月）</option>
+                    <option value="9" selected>育肥前期（7-12个月）</option>
+                    <option value="18">育肥后期（13-24个月）</option>
+                    <option value="26">出栏期（24个月以上）</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>2. 肉牛品种</label>
+            <div class="select-wrapper">
+                <select id="breed">
+                    <option value="1.0">贵州关岭牛（本地黄牛）</option>
+                    <option value="1.2" selected>西门塔尔牛（杂交肉牛）</option>
+                    <option value="1.5">安格斯牛（高端肉牛）</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>3. 当前体重区间</label>
+            <div class="select-wrapper">
+                <select id="weight">
+                    <option value="200">150kg - 250kg</option>
+                    <option value="325" selected>251kg - 400kg</option>
+                    <option value="475">401kg - 550kg</option>
+                    <option value="600">551kg以上</option>
+                </select>
+            </div>
+        </div>
+        <button class="btn-submit" onclick="startCalculation()">启动AI多模态测算</button>
+    </div>
+
+    <div class="result-area" id="resultArea">
+        <!-- 步骤1：基础维度测算 -->
+        <div class="step-box" id="step1" style="display:none;">
+            <div class="step-title">📊 维度一：多模态多维数据抓取</div>
+            <div class="step-formula">成本基础 = (牛犊购入价 + 月龄 × 饲料消耗)</div>
+            <div class="step-formula">市价对标 = 当前均重 × 活牛交易大盘指数</div>
+            <div class="step-formula">收益预期 = (预期出栏价 × 预期出栏重) - 剩余饲养成本</div>
+            <div style="display: flex; justify-content: space-between; margin-top: 12px; font-size: 13px; color: #555;">
+                <span>📌 成本基础值</span><span id="showCost" style="font-weight: bold; color: #1565c0;">--</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 13px; color: #555;">
+                <span>📌 市价对标值</span><span id="showMarket" style="font-weight: bold; color: #1565c0;">--</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 13px; color: #555;">
+                <span>📌 收益预期值</span><span id="showExpect" style="font-weight: bold; color: #1565c0;">--</span>
+            </div>
+        </div>
+
+        <!-- 步骤2：动态调权 -->
+        <div class="step-box weight-box" id="step2" style="display:none;">
+            <div class="step-title">⚙️ 维度二：BSDE动态权重分配</div>
+            <p style="font-size:13px; color:#555; line-height:1.6;">
+                依据牛只处于 <b id="stageText">育肥前期</b>，系统匹配倒向随机微分方程权重：
+                <br><br>
+                <span class="weight-tag" id="lcText">成本 λ₁=0.33</span>
+                <span class="weight-tag" id="lmText">市价 λ₂=0.33</span>
+                <span class="weight-tag" id="lpText">收益 λ₃=0.34</span>
+            </p>
+        </div>
+
+        <!-- 步骤3：综合出值 -->
+        <div class="step-box final-box" id="step3" style="display:none;">
+            <div class="step-title">✅ 维度三：综合估值与授信闭环</div>
+            <p style="font-size:13px; color:#666; margin-bottom:10px;">系统计算三维加权总和，并按照60%风险敞口出授信额度：</p>
+            <div style="font-size:14px; color:#333; margin-bottom:5px; display:flex; justify-content:space-between;">
+                <span>活体综合估值：</span>
+                <b id="resValue" style="color:#d32f2f;">-- 万元</b>
+            </div>
+            <div class="final-amount" id="resCredit" style="border-top:1px dashed #ffcc80; padding-top:10px;">
+                建议授信：-- 万元
+            </div>
+            <div style="font-size:12px; color:#e65100; background:#fff3e0; padding:8px; border-radius:6px; margin-top:10px;" id="riskText">
+                <!-- 风险提示 -->
+            </div>
+        </div>
+
+        <button class="btn-reset" id="resetBtn" onclick="resetForm()" style="display:none;">重新推演</button>
+    </div>
+</div>
+
+<script>
+    function startCalculation() {
+        document.getElementById('formArea').style.display = 'none';
+        document.getElementById('resultArea').style.display = 'block';
+
+        // 隐藏旧的步骤和按钮
+        document.getElementById('step1').style.display = 'none';
+        document.getElementById('step2').style.display = 'none';
+        document.getElementById('step3').style.display = 'none';
+        document.getElementById('resetBtn').style.display = 'none';
+
+        // 获取数据
+        const age = parseFloat(document.getElementById('age').value);
+        const breedRate = parseFloat(document.getElementById('breed').value);
+        const weight = parseFloat(document.getElementById('weight').value);
+
+        // 计算结果（展示逻辑）
+        const costValue = (3000 + (age * 300)) * breedRate;            // 成本基础
+        const marketValue = weight * 30 * breedRate;                  // 市价对标
+        const expectValue = marketValue * (1 + (0.05 * age));         // 收益预期
+
+        let lc, lm, lp, stageName, riskMsg;
+
+        // 动态调权逻辑
+        if (age <= 6) {
+            lc = 0.5; lm = 0.3; lp = 0.2; stageName = "犊牛期";
+            riskMsg = "⚠️ 犊牛期预警：免疫系统未发育完全，请防范烈性疫病导致抵押物灭失。";
+        } else if (age > 6 && age <= 12) {
+            lc = 0.33; lm = 0.33; lp = 0.34; stageName = "育肥前期";
+            riskMsg = "📈 育肥前期建议：增重最快阶段，请保证营养配比，关注活牛交易行情波动。";
+        } else if (age > 12 && age <= 24) {
+            lc = 0.2; lm = 0.3; lp = 0.5; stageName = "育肥后期";
+            riskMsg = "💰 育肥后期建议：牛只即将成型，建议提前对接屠宰场或市场，锁定出栏收益。";
+        } else {
+            lc = 0.1; lm = 0.6; lp = 0.3; stageName = "出栏期";
+            riskMsg = "⏰ 出栏预警：已达最佳出栏体重，请尽快出栏结清贷款，开启循环授信。";
+        }
+
+        const totalValue = (costValue * lc) + (marketValue * lm) + (expectValue * lp);
+        const creditLine = totalValue * 0.6;
+
+        // 填入步骤1的明细数值 (成本/市价/预期)
+        document.getElementById('showCost').innerText = costValue.toFixed(2) + ' 元';
+        document.getElementById('showMarket').innerText = marketValue.toFixed(2) + ' 元';
+        document.getElementById('showExpect').innerText = expectValue.toFixed(2) + ' 元';
+
+        // 填入步骤2权重显示
+        document.getElementById('stageText').innerText = stageName;
+        document.getElementById('lcText').innerText = "成本 λ₁=" + lc.toFixed(2);
+        document.getElementById('lmText').innerText = "市价 λ₂=" + lm.toFixed(2);
+        document.getElementById('lpText').innerText = "收益 λ₃=" + lp.toFixed(2);
+        
+        // 填入步骤3综合结果
+        document.getElementById('resValue').innerText = (totalValue / 10000).toFixed(2) + " 万元";
+        document.getElementById('resCredit').innerText = "建议授信额度：" + (creditLine / 10000).toFixed(2) + " 万元";
+        document.getElementById('riskText').innerText = riskMsg;
+
+        // 动画序列：逐步展示推演过程
+        setTimeout(() => { document.getElementById('step1').style.display = 'block'; }, 300);
+        setTimeout(() => { document.getElementById('step2').style.display = 'block'; }, 1200);
+        setTimeout(() => { 
+            document.getElementById('step3').style.display = 'block'; 
+            document.getElementById('resetBtn').style.display = 'block';
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); // 自动滚动到底部
+        }, 2200);
+    }
+
+    function resetForm() {
+        document.getElementById('resultArea').style.display = 'none';
+        document.getElementById('formArea').style.display = 'block';
+    }
+</script>
+</body>
+</html>
