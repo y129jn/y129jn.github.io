@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>垃圾分类 · 手机互动计算器</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{
+            font-family:'Inter',sans-serif;
+            background:#e8f3e8;
+            background-image:radial-gradient(circle at 20% 20%,rgba(100,170,100,.12) 0%,transparent 40%),
+                             radial-gradient(circle at 80% 80%,rgba(70,150,110,.1) 0%,transparent 45%);
+            min-height:100vh;
+            display:flex;justify-content:center;
+            padding:10px 8px 20px;
+        }
+        .app{
+            width:100%;max-width:420px;
+            background:rgba(255,255,255,.78);
+            backdrop-filter:blur(14px);
+            -webkit-backdrop-filter:blur(14px);
+            border-radius:28px;
+            padding:16px 14px 18px;
+            box-shadow:0 20px 40px -12px rgba(30,80,40,.25),0 0 0 1px rgba(220,245,220,.9) inset;
+            border:1px solid rgba(210,240,210,.9);
+        }
+        /* 头部 */
+        .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+        .title{font-size:1.25rem;font-weight:800;color:#1c4b2e;display:flex;align-items:center;gap:6px;letter-spacing:-.02em}
+        .title i{color:#2f8e4c;font-size:1.3rem}
+        .reset-sm{
+            background:transparent;border:1.5px solid #2f8e4c;color:#2f8e4c;
+            width:32px;height:32px;border-radius:50%;font-size:.85rem;
+            display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;
+        }
+        .reset-sm:active{background:#2f8e4c;color:#fff}
+        .subhead{font-size:.75rem;color:#3f7050;font-weight:500;margin-bottom:14px;display:flex;align-items:center;gap:5px}
+        .subhead i{color:#4d9e65;font-size:.7rem}
+
+        /* 滑块区 */
+        .sliders{
+            background:#fff;border-radius:20px;padding:12px 14px 10px;
+            box-shadow:0 6px 16px -6px rgba(30,80,40,.06);border:1px solid #e0f0e0;
+            margin-bottom:12px;
+        }
+        .slider-item{margin-bottom:12px}
+        .slider-item:last-child{margin-bottom:2px}
+        .slider-label{
+            display:flex;justify-content:space-between;font-size:.78rem;font-weight:600;
+            color:#1f4d2d;margin-bottom:5px;align-items:center;
+        }
+        .slider-label i{color:#3f9e5c;margin-right:4px;width:15px;font-size:.75rem}
+        .slider-value-badge{
+            background:#e0f0e0;padding:1px 9px;border-radius:20px;
+            font-weight:700;color:#1e5e2e;font-size:.75rem;border:1px solid #b8dab8;
+        }
+        input[type=range]{
+            -webkit-appearance:none;width:100%;height:6px;background:#d4e8d4;
+            border-radius:20px;outline:none;
+        }
+        input[type=range]::-webkit-slider-thumb{
+            -webkit-appearance:none;width:20px;height:20px;background:#2f8e4c;
+            border-radius:50%;border:3px solid #fff;
+            box-shadow:0 2px 8px rgba(30,90,40,.35);cursor:pointer;
+        }
+        input[type=range]::-moz-range-thumb{
+            width:18px;height:18px;background:#2f8e4c;border-radius:50%;
+            border:3px solid #fff;box-shadow:0 2px 8px rgba(30,90,40,.35);cursor:pointer;
+        }
+
+        /* 核心结果 — 2x2 紧凑网格 */
+        .result-grid{
+            display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;
+        }
+        .result-card{
+            background:#fff;border-radius:16px;padding:10px 12px;
+            box-shadow:0 6px 12px -6px rgba(20,70,30,.08);border:1px solid #d8eed8;
+            display:flex;flex-direction:column;
+        }
+        .result-card .label{font-size:.65rem;text-transform:uppercase;font-weight:700;letter-spacing:.03em;color:#4d7e5d;margin-bottom:3px;display:flex;align-items:center;gap:3px}
+        .result-card .label i{font-size:.6rem;color:#3f9e5c}
+        .result-card .value{font-size:1.45rem;font-weight:800;color:#154b25;line-height:1.1;letter-spacing:-.02em}
+        .result-card .unit{font-size:.7rem;font-weight:600;color:#558b66;margin-left:2px}
+        .result-card .note{font-size:.6rem;color:#57855f;margin-top:4px;border-top:1px dashed #c8e0c8;padding-top:4px;display:flex;align-items:center;gap:3px}
+        .result-card .note i{font-size:.55rem}
+
+        /* 四类垃圾卡片 — 横向滚动？不，用2x2网格，显示年总量 */
+        .waste-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+        .waste-card{
+            background:#fff;border-radius:16px;padding:10px 10px;
+            box-shadow:0 6px 12px -6px rgba(20,70,30,.06);border:1px solid #e0f0e0;
+            position:relative;overflow:hidden;
+        }
+        .waste-card::before{
+            content:'';position:absolute;top:0;left:0;width:100%;height:3px;
+            background:linear-gradient(90deg,#9ccc9c,#4caf50);
+        }
+        .waste-header{display:flex;align-items:center;gap:5px;margin-bottom:5px}
+        .color-dot{width:10px;height:10px;border-radius:3px}
+        .waste-name{font-weight:700;color:#1b4b2b;font-size:.72rem}
+        .waste-value{font-size:1.15rem;font-weight:800;color:#0e2e18;line-height:1.2}
+        .waste-value .unit{font-size:.6rem;font-weight:500;color:#4f7a5a}
+        .waste-sub{font-size:.62rem;color:#3f6e4e;margin:3px 0 0;font-weight:500}
+        .percentage-bar{height:4px;background:#e0ede0;border-radius:20px;overflow:hidden;margin:4px 0 2px}
+        .percentage-fill{height:100%;border-radius:20px;width:0%;transition:width .3s}
+        .percent-text{font-size:.55rem;color:#366b45;font-weight:600;text-align:right}
+
+        /* 推算链 — 紧凑横向 */
+        .chain-box{
+            background:#fff;border-radius:18px;padding:12px 12px 10px;
+            border:1px solid #d2ead2;box-shadow:0 6px 14px -8px rgba(30,80,40,.05);
+            margin-bottom:10px;
+        }
+        .box-title{font-weight:700;font-size:.75rem;color:#226336;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+        .box-title i{font-size:.7rem}
+        .chain-row{display:flex;align-items:center;justify-content:space-between;gap:2px;flex-wrap:wrap}
+        .chain-item{
+            background:#f6fbf6;padding:6px 8px;border-radius:12px;border:1px solid #d8eed8;
+            display:flex;flex-direction:column;align-items:center;flex:1 0 60px;
+            min-width:0;
+        }
+        .chain-item .lbl{font-size:.55rem;color:#55855f;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap}
+        .chain-item .num{font-weight:800;font-size:.85rem;color:#174d26;line-height:1.2}
+        .chain-arrow{font-size:.8rem;color:#64a17a;flex-shrink:0}
+
+        /* 废纸价值条 */
+        .eco-bar{
+            background:#f0f9f0;border-radius:14px;padding:8px 12px;
+            display:flex;align-items:center;justify-content:space-between;gap:8px;
+            flex-wrap:wrap;font-size:.7rem;font-weight:600;color:#1a463a;
+            border:1px solid #d0e8d0;margin-bottom:8px;
+        }
+        .eco-bar i{color:#2f8e4c;margin-right:3px}
+        .eco-bar .big{font-size:1rem;font-weight:800;color:#0b5e42}
+
+        /* 底部注脚 */
+        .footer-note{
+            font-size:.6rem;color:#4a7a57;display:flex;justify-content:space-between;
+            border-top:1px solid #c4e0c4;padding-top:8px;margin-top:4px;
+        }
+
+        @media (max-width:360px){
+            .app{padding:12px 10px}
+            .result-card .value{font-size:1.2rem}
+            .chain-item{padding:4px 6px}
+            .chain-item .num{font-size:.75rem}
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <!-- 头部 -->
+    <div class="header">
+        <div class="title"><i class="fas fa-leaf"></i> 垃圾量计算器</div>
+        <button class="reset-sm" id="resetBtn" aria-label="重置"><i class="fas fa-undo-alt"></i></button>
+    </div>
+    <div class="subhead"><i class="fas fa-school"></i> 贵阳市实验小学 · 滑动调节参数</div>
+
+    <!-- 滑块区 -->
+    <div class="sliders">
+        <div class="slider-item">
+            <div class="slider-label">
+                <span><i class="fas fa-users"></i> 学生家庭数</span>
+                <span class="slider-value-badge" id="familiesVal">4,950</span>
+            </div>
+            <input type="range" id="familiesSlider" min="100" max="8000" value="4950" step="10">
+        </div>
+        <div class="slider-item">
+            <div class="slider-label">
+                <span><i class="fas fa-chalkboard"></i> 班级数</span>
+                <span class="slider-value-badge" id="classesVal">90</span>
+            </div>
+            <input type="range" id="classesSlider" min="10" max="120" value="90" step="1">
+        </div>
+        <div class="slider-item">
+            <div class="slider-label">
+                <span><i class="fas fa-user-graduate"></i> 每班户数</span>
+                <span class="slider-value-badge" id="perClassVal">55</span>
+            </div>
+            <input type="range" id="perClassSlider" min="30" max="65" value="55" step="1">
+        </div>
+        <div class="slider-item">
+            <div class="slider-label">
+                <span><i class="fas fa-calendar"></i> 在校天数</span>
+                <span class="slider-value-badge" id="daysVal">365</span>
+            </div>
+            <input type="range" id="daysSlider" min="200" max="365" value="365" step="1">
+        </div>
+    </div>
+
+    <!-- 核心结果 2x2 -->
+    <div class="result-grid">
+        <div class="result-card">
+            <div class="label"><i class="fas fa-weight-hanging"></i> 家庭年总量</div>
+            <div class="value" id="totalTons">1,212<span class="unit">吨</span></div>
+            <div class="note"><i class="fas fa-home"></i> <span id="familyCountNote">4,950 户</span></div>
+        </div>
+        <div class="result-card">
+            <div class="label"><i class="fas fa-user"></i> 人均日产</div>
+            <div class="value" id="perCapita">0.84<span class="unit">kg</span></div>
+            <div class="note"><i class="fas fa-bottle-water"></i> 约一瓶半水</div>
+        </div>
+        <div class="result-card">
+            <div class="label"><i class="fas fa-bolt"></i> 发电潜力</div>
+            <div class="value" id="powerGen">46<span class="unit">万度</span></div>
+            <div class="note"><i class="fas fa-lightbulb"></i> <span id="powerHouseholds">约77户/年</span></div>
+        </div>
+        <div class="result-card">
+            <div class="label"><i class="fas fa-elephant"></i> 大象类比</div>
+            <div class="value" id="elephantCount">200<span class="unit">头</span></div>
+            <div class="note"><i class="fas fa-weight-scale"></i> 1头≈6吨</div>
+        </div>
+    </div>
+
+    <!-- 四类垃圾年总量卡片（随滑块变） -->
+    <div class="waste-grid" id="wasteGrid">
+        <div class="waste-card">
+            <div class="waste-header"><span class="color-dot" style="background:#778899"></span><span class="waste-name">其他垃圾</span></div>
+            <div class="waste-value"><span id="otherTons">674</span><span class="unit">吨/年</span></div>
+            <div class="waste-sub" id="otherPercentText">占比 55.6%</div>
+            <div class="percentage-bar"><div class="percentage-fill" id="otherBar" style="width:55.6%;background:#778899"></div></div>
+            <div class="percent-text" id="otherPercentSmall">55.6%</div>
+        </div>
+        <div class="waste-card">
+            <div class="waste-header"><span class="color-dot" style="background:#5f9e6b"></span><span class="waste-name">厨余垃圾</span></div>
+            <div class="waste-value"><span id="kitchenTons">258</span><span class="unit">吨/年</span></div>
+            <div class="waste-sub" id="kitchenPercentText">占比 21.3%</div>
+            <div class="percentage-bar"><div class="percentage-fill" id="kitchenBar" style="width:21.3%;background:#5f9e6b"></div></div>
+            <div class="percent-text" id="kitchenPercentSmall">21.3%</div>
+        </div>
+        <div class="waste-card">
+            <div class="waste-header"><span class="color-dot" style="background:#4a90e2"></span><span class="waste-name">可回收物</span></div>
+            <div class="waste-value"><span id="recycleTons">161</span><span class="unit">吨/年</span></div>
+            <div class="waste-sub" id="recyclePercentText">占比 13.3%</div>
+            <div class="percentage-bar"><div class="percentage-fill" id="recycleBar" style="width:13.3%;background:#4a90e2"></div></div>
+            <div class="percent-text" id="recyclePercentSmall">13.3%</div>
+        </div>
+        <div class="waste-card">
+            <div class="waste-header"><span class="color-dot" style="background:#c44545"></span><span class="waste-name">有害垃圾</span></div>
+            <div class="waste-value"><span id="harmfulTons">119</span><span class="unit">吨/年</span></div>
+            <div class="waste-sub" id="harmfulPercentText">占比 9.8%</div>
+            <div class="percentage-bar"><div class="percentage-fill" id="harmfulBar" style="width:9.8%;background:#c44545"></div></div>
+            <div class="percent-text" id="harmfulPercentSmall">9.8%</div>
+        </div>
+    </div>
+
+    <!-- 推算链 -->
+    <div class="chain-box">
+        <div class="box-title"><i class="fas fa-arrow-right-arrow-left"></i> 家庭域推算链</div>
+        <div class="chain-row">
+            <div class="chain-item"><span class="lbl">户日均</span><span class="num" id="chainPerHouse">0.67094</span><span class="lbl">kg</span></div>
+            <i class="fas fa-chevron-right chain-arrow"></i>
+            <div class="chain-item"><span class="lbl">× 班级户</span><span class="num" id="chainClassTotal">36.9</span><span class="lbl">kg</span></div>
+            <i class="fas fa-chevron-right chain-arrow"></i>
+            <div class="chain-item"><span class="lbl">× 班级</span><span class="num" id="chainSchoolDaily">3,321</span><span class="lbl">kg</span></div>
+            <i class="fas fa-chevron-right chain-arrow"></i>
+            <div class="chain-item"><span class="lbl">× 天</span><span class="num" id="chainYearTons">1,212</span><span class="lbl">吨</span></div>
+        </div>
+    </div>
+
+    <!-- 废纸价值 -->
+    <div class="eco-bar">
+        <span><i class="fas fa-tree"></i> 废纸回收 <span class="big" id="treeSaved">2,556</span> 棵树</span>
+        <span style="font-size:.65rem;color:#2e6b3e;" id="treeDelta">(150吨废纸)</span>
+    </div>
+
+    <!-- 底部 -->
+    <div class="footer-note">
+        <span><i class="fas fa-leaf"></i> 拖动滑块实时计算</span>
+        <span><i class="fas fa-recycle"></i> 分类一小步</span>
+    </div>
+</div>
+
+<script>
+    (function(){
+        const BASE = { other:372.92, kitchen:143.14, recycle:89.16, harmful:65.72 };
+        const TOTAL_BASE = BASE.other + BASE.kitchen + BASE.recycle + BASE.harmful;
+        const PERCENT = {
+            other: (BASE.other/TOTAL_BASE)*100,
+            kitchen: (BASE.kitchen/TOTAL_BASE)*100,
+            recycle: (BASE.recycle/TOTAL_BASE)*100,
+            harmful: (BASE.harmful/TOTAL_BASE)*100
+        };
+        const DEFAULTS = { families:4950, classes:90, perClass:55, days:365 };
+
+        // DOM
+        const familiesSlider = document.getElementById('familiesSlider');
+        const classesSlider = document.getElementById('classesSlider');
+        const perClassSlider = document.getElementById('perClassSlider');
+        const daysSlider = document.getElementById('daysSlider');
+        const familiesVal = document.getElementById('familiesVal');
+        const classesVal = document.getElementById('classesVal');
+        const perClassVal = document.getElementById('perClassVal');
+        const daysVal = document.getElementById('daysVal');
+
+        // 结果
+        const totalTons = document.getElementById('totalTons');
+        const perCapita = document.getElementById('perCapita');
+        const powerGen = document.getElementById('powerGen');
+        const elephantCount = document.getElementById('elephantCount');
+        const familyCountNote = document.getElementById('familyCountNote');
+        const powerHouseholds = document.getElementById('powerHouseholds');
+
+        // 四类
+        const otherTons = document.getElementById('otherTons');
+        const kitchenTons = document.getElementById('kitchenTons');
+        const recycleTons = document.getElementById('recycleTons');
+        const harmfulTons = document.getElementById('harmfulTons');
+        const otherPercentText = document.getElementById('otherPercentText');
+        const kitchenPercentText = document.getElementById('kitchenPercentText');
+        const recyclePercentText = document.getElementById('recyclePercentText');
+        const harmfulPercentText = document.getElementById('harmfulPercentText');
+        const otherBar = document.getElementById('otherBar');
+        const kitchenBar = document.getElementById('kitchenBar');
+        const recycleBar = document.getElementById('recycleBar');
+        const harmfulBar = document.getElementById('harmfulBar');
+        const otherPercentSmall = document.getElementById('otherPercentSmall');
+        const kitchenPercentSmall = document.getElementById('kitchenPercentSmall');
+        const recyclePercentSmall = document.getElementById('recyclePercentSmall');
+        const harmfulPercentSmall = document.getElementById('harmfulPercentSmall');
+
+        // 链
+        const chainPerHouse = document.getElementById('chainPerHouse');
+        const chainClassTotal = document.getElementById('chainClassTotal');
+        const chainSchoolDaily = document.getElementById('chainSchoolDaily');
+        const chainYearTons = document.getElementById('chainYearTons');
+        const treeSaved = document.getElementById('treeSaved');
+        const treeDelta = document.getElementById('treeDelta');
+
+        function updateAll(){
+            const families = +familiesSlider.value;
+            const classes = +classesSlider.value;
+            const perClass = +perClassSlider.value;
+            const days = +daysSlider.value;
+
+            // 标签
+            familiesVal.textContent = families.toLocaleString();
+            classesVal.textContent = classes;
+            perClassVal.textContent = perClass;
+            daysVal.textContent = days;
+
+            // 推算链核心
+            const perHouseKg = TOTAL_BASE / 1000; // 0.67094
+            const classTotalKg = perHouseKg * perClass; // 36.9
+            const schoolDailyKg = classTotalKg * classes; // 3321
+            const yearTonsVal = (schoolDailyKg * days) / 1000; // 1212
+
+            chainPerHouse.textContent = perHouseKg.toFixed(5);
+            chainClassTotal.textContent = classTotalKg.toFixed(1);
+            chainSchoolDaily.textContent = Math.round(schoolDailyKg).toLocaleString();
+            chainYearTons.textContent = Math.round(yearTonsVal).toLocaleString();
+
+            // 结果卡片
+            totalTons.innerHTML = Math.round(yearTonsVal).toLocaleString() + '<span class="unit">吨</span>';
+            familyCountNote.textContent = families.toLocaleString() + ' 户';
+
+            // 人均：保持0.84附近微调，与家庭域总量比例挂钩
+            const ratio = yearTonsVal / 1212;
+            let pc = 0.84 * Math.min(1.4, Math.max(0.6, ratio));
+            perCapita.innerHTML = pc.toFixed(2) + '<span class="unit">kg</span>';
+
+            // 发电
+            const powerKwh = yearTonsVal * 380;
+            powerGen.innerHTML = Math.round(powerKwh/10000) + '<span class="unit">万度</span>';
+            const households = Math.round(powerKwh / 6000);
+            powerHouseholds.textContent = `约${households}户/年`;
+
+            // 大象
+            elephantCount.innerHTML = Math.round(yearTonsVal/6).toLocaleString() + '<span class="unit">头</span>';
+
+            // 四类年总量 = 年总量 × 占比
+            const oTons = Math.round(yearTonsVal * PERCENT.other/100);
+            const kTons = Math.round(yearTonsVal * PERCENT.kitchen/100);
+            const rTons = Math.round(yearTonsVal * PERCENT.recycle/100);
+            const hTons = Math.round(yearTonsVal * PERCENT.harmful/100);
+
+            otherTons.textContent = oTons.toLocaleString();
+            kitchenTons.textContent = kTons.toLocaleString();
+            recycleTons.textContent = rTons.toLocaleString();
+            harmfulTons.textContent = hTons.toLocaleString();
+
+            otherPercentText.textContent = `占比 ${PERCENT.other.toFixed(1)}%`;
+            kitchenPercentText.textContent = `占比 ${PERCENT.kitchen.toFixed(1)}%`;
+            recyclePercentText.textContent = `占比 ${PERCENT.recycle.toFixed(1)}%`;
+            harmfulPercentText.textContent = `占比 ${PERCENT.harmful.toFixed(1)}%`;
+
+            otherBar.style.width = PERCENT.other + '%';
+            kitchenBar.style.width = PERCENT.kitchen + '%';
+            recycleBar.style.width = PERCENT.recycle + '%';
+            harmfulBar.style.width = PERCENT.harmful + '%';
+
+            otherPercentSmall.textContent = PERCENT.other.toFixed(1) + '%';
+            kitchenPercentSmall.textContent = PERCENT.kitchen.toFixed(1) + '%';
+            recyclePercentSmall.textContent = PERCENT.recycle.toFixed(1) + '%';
+            harmfulPercentSmall.textContent = PERCENT.harmful.toFixed(1) + '%';
+
+            // 废纸价值
+            const paperTons = Math.round((yearTonsVal/1212)*150);
+            const trees = Math.round((yearTonsVal/1212)*2556);
+            treeSaved.textContent = trees.toLocaleString();
+            treeDelta.textContent = `(${paperTons}吨废纸)`;
+        }
+
+        function resetDefaults(){
+            familiesSlider.value = DEFAULTS.families;
+            classesSlider.value = DEFAULTS.classes;
+            perClassSlider.value = DEFAULTS.perClass;
+            daysSlider.value = DEFAULTS.days;
+            updateAll();
+        }
+
+        // 事件
+        familiesSlider.addEventListener('input', updateAll);
+        classesSlider.addEventListener('input', updateAll);
+        perClassSlider.addEventListener('input', updateAll);
+        daysSlider.addEventListener('input', updateAll);
+        document.getElementById('resetBtn').addEventListener('click', resetDefaults);
+
+        // 初始化
+        updateAll();
+    })();
+</script>
+</body>
+</html>
